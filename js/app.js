@@ -9,11 +9,23 @@ import { renderReview } from './views/review.js';
 import { renderSettings } from './views/settings.js';
 import { openTaskEditor, openWeekBlocksEditor } from './views/editors.js';
 
+// 标签栏:图标用内联线性 SVG(24×24、currentColor,跟随选中色)
+const ICONS = {
+  calendar:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3.5" y="5.5" width="17" height="15" rx="3.5"/><path d="M3.5 10.5h17M8.5 3.5v3.5M15.5 3.5v3.5"/></svg>',
+  board:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3.5" y="4.5" width="7.5" height="15" rx="2.5"/><rect x="13" y="4.5" width="7.5" height="9.5" rx="2.5"/></svg>',
+  review:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 20v-8M12 20V5M18 20v-5.5"/></svg>',
+  settings:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 8.5h9M17.5 8.5H20M4 15.5h2.5M11 15.5h9"/><circle cx="15.2" cy="8.5" r="2.2"/><circle cx="8.8" cy="15.5" r="2.2"/></svg>',
+};
+
 const TABS = [
-  { id: 'calendar', label: '周历', icon: '▦' },
-  { id: 'board', label: '看板', icon: '▤' },
-  { id: 'review', label: '复盘', icon: '◑' },
-  { id: 'settings', label: '设置', icon: '⚙' },
+  { id: 'calendar', label: '周历', icon: ICONS.calendar },
+  { id: 'board', label: '看板', icon: ICONS.board },
+  { id: 'review', label: '复盘', icon: ICONS.review },
+  { id: 'settings', label: '设置', icon: ICONS.settings },
 ];
 
 const ui = {
@@ -81,23 +93,24 @@ function render() {
 
 function buildTabbar() {
   const bar = document.getElementById('tabbar');
-  bar.replaceChildren(
-    ...TABS.map((tab) =>
-      el(
-        'button',
-        {
-          type: 'button',
-          class: 'tab',
-          role: 'tab',
-          'aria-selected': 'false',
-          dataset: { tab: tab.id },
-          on: { click: () => ctx.go(tab.id) },
-        },
-        el('span', { class: 'tab-icon', 'aria-hidden': 'true', text: tab.icon }),
-        el('span', { class: 'tab-label', text: tab.label }),
-      ),
-    ),
-  );
+  const buttons = TABS.map((tab) => {
+    const icon = el('span', { class: 'tab-icon', 'aria-hidden': 'true' });
+    icon.innerHTML = tab.icon; // 静态图标字符串,不是用户输入
+    return el(
+      'button',
+      {
+        type: 'button',
+        class: 'tab',
+        role: 'tab',
+        'aria-selected': 'false',
+        dataset: { tab: tab.id },
+        on: { click: () => ctx.go(tab.id) },
+      },
+      icon,
+      el('span', { class: 'tab-label', text: tab.label }),
+    );
+  });
+  bar.replaceChildren(...buttons);
 }
 
 function applyAppName() {
