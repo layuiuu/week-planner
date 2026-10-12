@@ -1,7 +1,7 @@
 // Service Worker:缓存应用外壳,让「添加到主屏幕」后能离线打开。
 // 数据本来就在本地,离线也能完整使用(导入/导出文件也不依赖网络)。
 
-const CACHE = 'weekplanner-v2';
+const CACHE = 'weekplanner-v3';
 
 const APP_SHELL = [
   './',
@@ -55,10 +55,12 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // 联网优先:能上网时永远拿最新的代码,避免「改了网页却还看到旧版本」。
-  // 没网时回退到缓存,所以加了主屏幕之后离线也能正常用。
+  // 联网优先,而且明确要求「向后端校验」而不是吃浏览器 HTTP 缓存:
+  // GitHub Pages 给静态文件设了 Cache-Control: max-age=600,如果直接用缓存,
+  // 网页更新后最长 10 分钟你还看到旧版。带 ETag 校验时没变就返回 304,几乎不额外花流量。
+  // 没网时回退到缓存,所以加进主屏幕后离线照样能用。
   event.respondWith(
-    fetch(request)
+    fetch(request, { cache: 'no-cache' })
       .then((response) => {
         if (response && response.ok && response.type === 'basic') {
           const copy = response.clone();
