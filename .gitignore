@@ -1,0 +1,8 @@
+# 编辑器 / 工具产生的目录,不需要发布
+.zcode/
+.testdata/
+
+# 系统垃圾文件
+.DS_Store
+Thumbs.db
+desktop.ini
