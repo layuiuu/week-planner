@@ -55,16 +55,22 @@ export function renderSettings(root, ctx) {
       'section',
       { class: 'panel' },
       el('h3', { class: 'section-title', text: '导入表格' }),
-      el('p', { class: 'muted', text: '只支持 Excel(.xlsx)和 CSV。表头要固定,系统照着读,不会猜。导入前会先给你看确认页。' }),
+      el('p', { class: 'muted', text: '只支持 Excel(.xlsx)和 CSV。表头要按固定的写,系统照着读,不会猜。导入前会先给你看确认页。' }),
       el('div', { class: 'btn-row' },
         el('button', { class: 'btn btn-primary', type: 'button', text: '导入周表', on: { click: () => weekInput.click() } }),
         el('button', { class: 'btn btn-primary', type: 'button', text: '导入任务清单', on: { click: () => taskInput.click() } }),
       ),
       el('p', { class: 'muted mono', text: `周表表头:${WEEK_HEADER_TEXT}` }),
       el('p', { class: 'muted mono', text: `任务表表头:${TASK_HEADER_TEXT}` }),
+      el('p', { class: 'field-label', text: '下载模板(填好直接导入)' }),
       el('div', { class: 'btn-row' },
-        el('button', { class: 'btn btn-ghost', type: 'button', text: '下载周表模板', on: { click: downloadWeekTemplate } }),
-        el('button', { class: 'btn btn-ghost', type: 'button', text: '下载任务表模板', on: { click: downloadTaskTemplate } }),
+        el('a', { class: 'btn btn-ghost', href: 'samples/week-template.xlsx', download: '周表模板.xlsx', text: '周表模板 .xlsx' }),
+        el('a', { class: 'btn btn-ghost', href: 'samples/tasks-template.xlsx', download: '任务模板.xlsx', text: '任务模板 .xlsx' }),
+      ),
+      el('div', { class: 'btn-row' },
+        el('button', { class: 'btn btn-ghost btn-sm', type: 'button', text: '周表模板 .csv', on: { click: downloadWeekTemplate } }),
+        el('button', { class: 'btn btn-ghost btn-sm', type: 'button', text: '任务模板 .csv', on: { click: downloadTaskTemplate } }),
+        el('button', { class: 'btn btn-ghost btn-sm', type: 'button', text: '列怎么填?', on: { click: showFormatHelp } }),
       ),
       weekInput,
       taskInput,
@@ -233,6 +239,48 @@ function downloadTaskTemplate() {
   ];
   downloadText('任务表模板.csv', toCSV(rows), { mime: 'text/csv;charset=utf-8', bom: true });
   toast('已下载任务表模板', 'success');
+}
+
+function showFormatHelp() {
+  const li = (text) => el('li', { text });
+  openSheet({
+    title: '表格怎么填',
+    subtitle: '只有两个文件:周表 + 任务表',
+    size: 'sheet-tall',
+    body: el(
+      'div',
+      { class: 'help' },
+      el('h4', { text: `① 周表 —— ${WEEK_HEADER_TEXT}` }),
+      el('p', { class: 'muted', text: '它决定每周重复套用的框架。一个板块 = 一段时间 + 一个类别 + 一个名字。' }),
+      el('ul', {},
+        li('星期(必填):周一 / 星期一 / 礼拜一 / 一 / 1 都认,英文 Mon、Monday 也认。'),
+        li('板块名称(必填):这段时间叫什么,例如「上午学习」。任务表靠这个名字对上板块;同一个星期里不能重名,不同星期可以同名(每天都有「上午学习」是正常的)。'),
+        li('类别(必填):用来分组和统计,例如 学习 / 工作 / 健身 / 生活。留空会算作「未分类」。'),
+        li('开始(必填):写 09:00 或 9:00 都行,Excel 里的时间单元格也认。'),
+        li('结束(可不填):不填就只显示开始时间。结束早于开始只会提醒,不会被拒。'),
+      ),
+      el('h4', { text: `② 任务表 —— ${TASK_HEADER_TEXT}` }),
+      el('p', { class: 'muted', text: '它把每天具体要做的事挂到板块上。' }),
+      el('ul', {},
+        li('日期(必填):2026-10-13、2026/10/13、2026年10月13日、Excel 日期单元格都认。只写「10-13」会自动补当前年份(确认页会显示解析结果)。'),
+        li('板块名称(必填):要和你周表里那一天的板块名一字不差。那天没有这个板块,导入后会被放进「未匹配板块」,不会丢。'),
+        li('任务(必填):要做的这件事。'),
+        li('备注(可不填):导入后还能在应用里随时改。'),
+      ),
+      el('h4', { text: '几条通用规则' }),
+      el('ul', {},
+        li('表头行不一定在第一行,但必须有一行写着这些表头,系统会自动找。'),
+        li('表头可以写别名,例如「开始时间」「Start Time」;空格、大小写、括号里的说明都不影响。'),
+        li('多出来的列会被忽略(会提醒你),空行自动跳过。'),
+        li('同一天 + 同一板块 + 同样内容的任务算重复,默认跳过(可以在确认页取消勾选强行导入)。'),
+        li('Excel 里一个文件有多张工作表时,系统挑表头最像的那张,并在确认页告诉你是哪张。'),
+        li('只支持 .xlsx / .xlsm / CSV。老版 .xls 请在 Excel 里另存为 .xlsx 或 CSV。'),
+        li('CSV 的编码会自动识别,UTF-8 和中文 Windows 的 GBK 都不会乱码。'),
+        li('上传后一定会先出确认页:写错的行会标红并说明原因,确认了才真的存进去。'),
+      ),
+    ),
+    actions: [{ label: '知道了', kind: 'primary' }],
+  });
 }
 
 function showHelp() {
