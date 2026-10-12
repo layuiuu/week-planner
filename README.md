@@ -1,5 +1,11 @@
 # 周计划
 
+**线上地址(手机直接打开):https://layuiuu.github.io/week-planner/**
+
+打开后点浏览器的「添加到主屏幕」,就当成 App 用。数据只存在你自己手机/电脑的浏览器里,这个网址上没有任何你的个人信息。
+
+---
+
 一个纯静态的网页小工具:把每周固定的时间表变成**每周框架**,再把每天要做的具体任务**挂到框架的板块里**,一眼看到整周安排,勾选完成、按周复盘。
 
 - 手机浏览器打开就能用,「添加到主屏幕」后和 App 差不多。
@@ -44,6 +50,22 @@
 - 不需要 AI 猜内容、不需要账号、不需要云同步、不需要「目标/阶段」体系。
 
 ## 部署到 GitHub Pages
+
+这个仓库已经部署好了(见页面顶部的线上地址)。下面是**自己重新部署 / 换账号**的做法。
+
+### 方式一:用项目里的部署脚本(推荐,尤其在国内)
+
+这台机器上 `github.com` 的 443 端口被网络挡住了,`git push` 会超时,但 `api.github.com` 能通。所以用脚本走 API:
+
+```bash
+cd 这个文件夹
+python tools/deploy.py            # 默认发布到 week-planner 仓库
+python tools/deploy.py 别的名字    # 想换仓库名
+```
+
+脚本会:读本机 Git Credential Manager 里已存的 GitHub 凭据 → 建仓库(没有就建,公开)→ 一次性提交全部文件 → 开启/更新 GitHub Pages → 等构建完成并打印网址。**改完代码再跑一次就是更新线上。**
+
+### 方式二:常规 git push(网络没问题时)
 
 ```bash
 cd 这个文件夹
@@ -95,7 +117,7 @@ js/
   views/                calendar / board / review / settings / editors / importPreview
 samples/                示例 CSV(可直接拿去导入试)
 icons/                  PWA 图标
-tools/                 生成图标和示例 CSV 的 Python 小脚本(部署时用不到)
+tools/                 生成图标/示例 CSV 的脚本,以及一键发布到 GitHub Pages 的 deploy.py
 ```
 
 ## 已知边界
