@@ -31,7 +31,108 @@ export function clear(node) {
   return node;
 }
 
-/* ---------------- 弹层 ---------------- */
+/* ---------------- 图标(内联线性 SVG,跟随 currentColor) ---------------- */
+
+const svg = (body, width = 1.7) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+
+export const ICON = {
+  plus: svg('<path d="M12 5.5v13M5.5 12h13"/>', 1.8),
+  note: svg('<path d="M6 3.5h8L19 8.5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1z"/><path d="M13.6 3.7v5h5"/>'),
+  more: svg('<circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/>', 1.4),
+  sliders: svg('<path d="M4 8.5h9M17.5 8.5H20M4 15.5h2.5M11 15.5h9"/><circle cx="15.2" cy="8.5" r="2.2"/><circle cx="8.8" cy="15.5" r="2.2"/>'),
+  chevronDown: svg('<path d="M6 9.5l6 6 6-6"/>', 1.8),
+  calendar: svg('<rect x="3.5" y="5.5" width="17" height="15" rx="3.5"/><path d="M3.5 10.5h17M8.5 3.5v3.5M15.5 3.5v3.5"/>'),
+  check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 2),
+};
+
+/* ---------------- 锚定弹层(popover) ---------------- */
+
+let activePopover = null;
+
+export function closePopover() {
+  if (!activePopover) return;
+  const { node, onClose } = activePopover;
+  activePopover = null;
+  document.removeEventListener('pointerdown', onDocPointerDown, true);
+  document.removeEventListener('keydown', onDocKeyDown, true);
+  window.removeEventListener('scroll', closePopover, true);
+  window.removeEventListener('resize', closePopover);
+  node.remove();
+  if (typeof onClose === 'function') onClose();
+}
+
+function onDocPointerDown(event) {
+  if (!activePopover) return;
+  if (!activePopover.node.contains(event.target) && !activePopover.anchor.contains(event.target)) closePopover();
+}
+
+function onDocKeyDown(event) {
+  if (event.key === 'Escape') closePopover();
+}
+
+export function isPopoverOpenFor(anchor) {
+  return !!(activePopover && activePopover.anchor === anchor);
+}
+
+/**
+ * 在 anchor 旁边弹出一个小菜单。
+ * items: [{ label, icon?, onClick? }]  —— 点击任一项都会先收起再执行
+ */
+export function openPopover({ anchor, items, align = 'end', onClose } = {}) {
+  closePopover();
+  const node = el(
+    'div',
+    { class: 'popover', role: 'menu' },
+    ...items.map((item) =>
+      el(
+        'button',
+        {
+          type: 'button',
+          class: 'popover-item',
+          role: 'menuitem',
+          on: {
+            click: () => {
+              const run = item.onClick;
+              closePopover();
+              if (run) run();
+            },
+          },
+        },
+        item.icon ? el('span', { class: 'popover-icon', 'aria-hidden': 'true', html: item.icon }) : null,
+        el('span', { class: 'popover-label', text: item.label }),
+      ),
+    ),
+  );
+
+  node.style.visibility = 'hidden';
+  document.body.append(node);
+
+  const rect = anchor.getBoundingClientRect();
+  const width = node.offsetWidth;
+  const height = node.offsetHeight;
+  const margin = 8;
+  let left = align === 'end' ? rect.right - width : rect.left;
+  left = Math.min(Math.max(margin, left), Math.max(margin, window.innerWidth - margin - width));
+  let top = rect.bottom + 6;
+  if (top + height > window.innerHeight - margin) {
+    const above = rect.top - height - 6;
+    top = above >= margin ? above : Math.max(margin, window.innerHeight - margin - height);
+  }
+  node.style.left = `${Math.round(left)}px`;
+  node.style.top = `${Math.round(top)}px`;
+  node.style.visibility = '';
+
+  activePopover = { node, anchor, onClose };
+  // 延后一轮再挂监听,否则唤起它的这次点击会立刻把它关掉
+  setTimeout(() => {
+    document.addEventListener('pointerdown', onDocPointerDown, true);
+    document.addEventListener('keydown', onDocKeyDown, true);
+    window.addEventListener('scroll', closePopover, true);
+    window.addEventListener('resize', closePopover);
+  }, 0);
+  return node;
+}
 
 let openCount = 0;
 

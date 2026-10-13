@@ -81,11 +81,47 @@ export function blockTimeLabel(block) {
   return block.start || block.end || '';
 }
 
-/** 由类别名算一个稳定的色相,让同类板块颜色一致、不同类有区分 */
-export function categoryHue(name) {
-  let hash = 0;
-  for (const ch of String(name || '')) hash = (hash * 31 + ch.codePointAt(0)) % 360;
-  return (hash % 360 + 360) % 360;
+/** 马卡龙调色板:低饱和、彼此区分度高。rgb 用逗号分隔,方便 CSS 里拼 rgba() */
+const MACARON = [
+  { name: '薄荷绿', rgb: '111, 207, 151' },
+  { name: '天蓝', rgb: '111, 182, 241' },
+  { name: '薰衣草', rgb: '169, 155, 239' },
+  { name: '蜜桃粉', rgb: '242, 160, 160' },
+  { name: '杏黄', rgb: '242, 200, 121' },
+  { name: '青绿', rgb: '111, 208, 200' },
+  { name: '珊瑚', rgb: '242, 176, 138' },
+  { name: '藕荷', rgb: '217, 163, 208' },
+  { name: '灰蓝', rgb: '154, 169, 199' },
+  { name: '抹茶', rgb: '185, 206, 126' },
+];
+
+// 常见类别固定取值,保证这几个一定会拿到互不相同的颜色
+const KNOWN_CATEGORY = {
+  学习: 0,
+  工作: 1,
+  健身: 2,
+  生活: 3,
+  兴趣: 4,
+  阅读: 5,
+  娱乐: 6,
+  家务: 7,
+  运动: 8,
+  休息: 9,
+};
+
+/** 同一个类别名永远拿到同一个颜色,周历 / 看板 / 复盘三处保持一致 */
+export function categoryColor(name) {
+  const key = String(name == null ? '' : name).trim();
+  if (key in KNOWN_CATEGORY) return MACARON[KNOWN_CATEGORY[key]];
+  if (!key) return MACARON[8];
+  let hash = 7;
+  for (const ch of key) hash = (hash * 31 + ch.codePointAt(0)) % 100003;
+  return MACARON[hash % MACARON.length];
+}
+
+/** 直接可以塞进 el(..., { style }) 的自定义属性 */
+export function categoryStyle(name) {
+  return { '--cat-rgb': categoryColor(name).rgb };
 }
 
 /**

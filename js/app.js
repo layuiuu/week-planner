@@ -32,9 +32,11 @@ const ui = {
   tab: 'calendar',
   week: currentWeekKey(),
   day: todayISO(),
-  boardScope: 'week',
+  boardScope: 'day',
   boardDay: todayISO(),
   reviewWeek: currentWeekKey(),
+  boardExpanded: {},
+  autoScrolledKey: null,
 };
 
 const ctx = {
@@ -45,6 +47,8 @@ const ctx = {
   refresh: requestRender,
   go(tab) {
     ui.tab = tab;
+    // 每次「进入周历页」都重新按当前时间定位一次
+    if (tab === 'calendar') ui.autoScrolledKey = null;
     lastTab = null;
     render();
   },
@@ -89,10 +93,28 @@ function render() {
   (renderers[ui.tab] || renderCalendar)(view, ctx);
 
   if (tabChanged) window.scrollTo({ top: 0 });
+  positionTabPill(tabChanged);
+}
+
+/** 让选中高亮块滑到当前标签下面 */
+function positionTabPill(animate) {
+  const bar = document.getElementById('tabbar');
+  if (!bar) return;
+  const pill = bar.querySelector('.tab-pill');
+  const active = bar.querySelector('.tab.is-active');
+  if (!pill || !active) return;
+  pill.style.width = `${active.offsetWidth}px`;
+  pill.style.transform = `translateX(${active.offsetLeft}px)`;
+  pill.style.height = `${active.offsetHeight}px`;
+  // 首次定位完成后再打开过渡,避免入场时从左边滑过来
+  if (animate || !pill.classList.contains('is-ready')) {
+    setTimeout(() => pill.classList.add('is-ready'), 0);
+  }
 }
 
 function buildTabbar() {
   const bar = document.getElementById('tabbar');
+  const pill = el('span', { class: 'tab-pill', 'aria-hidden': 'true' });
   const buttons = TABS.map((tab) => {
     const icon = el('span', { class: 'tab-icon', 'aria-hidden': 'true' });
     icon.innerHTML = tab.icon; // 静态图标字符串,不是用户输入
@@ -110,7 +132,9 @@ function buildTabbar() {
       el('span', { class: 'tab-label', text: tab.label }),
     );
   });
-  bar.replaceChildren(...buttons);
+  bar.replaceChildren(pill, ...buttons);
+  window.addEventListener('resize', () => positionTabPill(false));
+  window.addEventListener('orientationchange', () => positionTabPill(false));
 }
 
 function applyAppName() {
@@ -132,6 +156,19 @@ function main() {
   if (store.getStorageError()) {
     toast('无法写入本地存储,数据不会被保存', 'error', 5000);
   }
+
+  // 跨天回到前台:自动跳到新的「今天」
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    const today = todayISO();
+    if (ui.day === today) return;
+    ui.week = currentWeekKey();
+    ui.day = today;
+    ui.boardDay = today;
+    ui.reviewWeek = currentWeekKey();
+    ui.autoScrolledKey = null;
+    requestRender();
+  });
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     window.addEventListener('load', () => {

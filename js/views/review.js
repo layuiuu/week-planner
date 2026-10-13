@@ -13,7 +13,7 @@ import {
   weekLabel,
   todayISO,
 } from '../dates.js';
-import { categoryOfTask, blockOfTask } from '../blocks.js';
+import { blockOfTask, categoryStyle } from '../blocks.js';
 import { openTaskEditor } from './editors.js';
 
 export function renderReview(root, ctx) {
@@ -69,33 +69,42 @@ export function renderReview(root, ctx) {
     ),
   );
 
-  // 按类别
-  const byCategory = new Map();
-  for (const task of tasks) {
-    const category = categoryOfTask(state, task);
-    if (!byCategory.has(category)) byCategory.set(category, []);
-    byCategory.get(category).push(task);
-  }
-  root.append(
-    buildSection('按类别完成情况', [...byCategory.entries()].map(([category, list]) => {
-      const done = list.filter((t) => t.done).length;
-      return progressRow(category, done, list.length);
-    })),
-  );
-
-  // 按板块
+  // 按板块(紧凑卡片网格,数字右对齐 + 等宽)
   const byBlock = new Map();
   for (const task of tasks) {
     const block = blockOfTask(state, task);
     const key = block ? block.name : `未匹配板块:${task.blockName || '(空)'}`;
-    if (!byBlock.has(key)) byBlock.set(key, []);
-    byBlock.get(key).push(task);
+    if (!byBlock.has(key)) byBlock.set(key, { category: block ? block.category : null, tasks: [] });
+    byBlock.get(key).tasks.push(task);
   }
+  const blockCards = [...byBlock.entries()].map(([name, group]) => {
+    const done = group.tasks.filter((t) => t.done).length;
+    const total = group.tasks.length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    return el(
+      'div',
+      { class: 'stat-card', style: group.category ? categoryStyle(group.category) : null },
+      el(
+        'div',
+        { class: 'stat-card-top' },
+        el('span', { class: `cat-dot${group.category ? '' : ' is-plain'}` }),
+        el('span', { class: 'stat-card-name', text: name }),
+      ),
+      el('div', { class: 'stat-card-num' },
+        el('span', { class: `num-strong${total && done === total ? ' is-done' : ''}`, text: String(done) }),
+        el('span', { class: 'num-sep', text: '/' }),
+        el('span', { class: 'num-total', text: String(total) }),
+      ),
+      el('div', { class: 'bar bar-thin' },
+        el('div', { class: `bar-fill${total && done === total ? ' is-done' : ''}`, style: { width: `${pct}%` } }),
+      ),
+    );
+  });
   root.append(
-    buildSection('按板块完成情况', [...byBlock.entries()].map(([name, list]) => {
-      const done = list.filter((t) => t.done).length;
-      return progressRow(name, done, list.length);
-    })),
+    el('section', { class: 'panel' },
+      el('h3', { class: 'section-title', text: '按板块完成情况' }),
+      blockCards.length ? el('div', { class: 'stat-grid' }, ...blockCards) : el('p', { class: 'muted', text: '暂无数据' }),
+    ),
   );
 
   // 按天
@@ -189,20 +198,4 @@ export function renderReview(root, ctx) {
 
 function buildSection(title, rows) {
   return el('section', { class: 'panel' }, el('h3', { class: 'section-title', text: title }), ...(rows.length ? rows : [el('p', { class: 'muted', text: '暂无数据' })]));
-}
-
-function progressRow(name, done, total, sub) {
-  const pct = total ? Math.round((done / total) * 100) : 0;
-  const remaining = total - done;
-  const subText = sub || (total === 0 ? '' : remaining === 0 ? '全部完成' : `还有 ${remaining} 项未完成`);
-  return el(
-    'div',
-    { class: 'progress-row' },
-    el('div', { class: 'progress-row-head' },
-      el('span', { class: 'progress-name', text: name }),
-      el('span', { class: `progress-count${total && done === total ? ' is-done' : ''}`, text: `${done}/${total}` }),
-    ),
-    el('div', { class: 'bar' }, el('div', { class: `bar-fill${total && done === total ? ' is-done' : ''}`, style: { width: `${pct}%` } })),
-    subText ? el('span', { class: 'progress-sub', text: subText }) : null,
-  );
 }

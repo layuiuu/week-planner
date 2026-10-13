@@ -16,6 +16,7 @@
 import base64
 import json
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -26,6 +27,39 @@ API = "https://api.github.com"
 PROJECT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO = sys.argv[1] if len(sys.argv) > 1 else "week-planner"
 SKIP_DIRS = {".git", ".zcode", ".testdata", "__pycache__", "node_modules"}
+
+# api.github.com 的真实 IP。部分网络会污染 DNS(把它解析到 127.0.0.1),
+# 所以脚本会自己挑一个能连通的 IP 直接使用,SNI / 证书校验仍然是 api.github.com。
+CANDIDATE_IPS = [
+    "20.205.243.168",
+    "140.82.112.6",
+    "140.82.113.6",
+    "140.82.114.6",
+    "140.82.116.6",
+    "140.82.121.6",
+    "20.27.177.116",
+]
+
+
+def pin_api_dns():
+    for ip in CANDIDATE_IPS:
+        try:
+            with socket.create_connection((ip, 443), timeout=4):
+                pass
+        except OSError:
+            continue
+        real_getaddrinfo = socket.getaddrinfo
+
+        def patched(host, port, *args, **kwargs):
+            if host == "api.github.com":
+                return real_getaddrinfo(ip, port, *args, **kwargs)
+            return real_getaddrinfo(host, port, *args, **kwargs)
+
+        socket.getaddrinfo = patched
+        print(f"连接 GitHub API:{ip}")
+        return ip
+    print("!! 没有可直连的 GitHub API IP,尝试用系统 DNS 解析")
+    return None
 
 
 def get_token():
@@ -84,6 +118,7 @@ def collect_files():
 
 
 def main():
+    pin_api_dns()
     _, me = api("GET", "/user")
     login, uid = me["login"], me["id"]
     print(f"账号:{login}")
