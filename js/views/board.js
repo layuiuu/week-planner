@@ -143,11 +143,26 @@ function buildGroup({ group, scope, day, weekKey, ctx }) {
       },
     },
     el('span', { class: 'acc-chevron', 'aria-hidden': 'true', html: ICON.chevronDown }),
-    el('span', { class: `cat-dot${group.category ? '' : ' is-plain'}`, style: group.category ? categoryStyle(group.category) : null }),
-    el('span', { class: 'acc-name', text: group.name }),
-    group.category ? el('span', { class: 'acc-cat', text: group.category }) : null,
-    scope === 'day' && group.block ? el('span', { class: 'acc-time', text: blockTimeLabel(group.block) }) : null,
-    el('span', { class: `acc-count${done === group.tasks.length ? ' is-done' : ''}`, text: `${done}/${group.tasks.length}` }),
+    el(
+      'span',
+      { class: 'acc-main' },
+      // 第一行:板块名(完整换行、不截断)+ 右侧进度
+      el(
+        'span',
+        { class: 'acc-line1' },
+        el('span', { class: 'acc-name', text: group.name }),
+        el('span', { class: `acc-count${done === group.tasks.length ? ' is-done' : ''}`, text: `${done}/${group.tasks.length}` }),
+      ),
+      // 第二行:类别标签 + 时间
+      el(
+        'span',
+        { class: 'acc-line2' },
+        group.category
+          ? el('span', { class: 'cat-tag', style: categoryStyle(group.category), text: group.category })
+          : el('span', { class: 'cat-tag cat-tag-warn', text: '未分类' }),
+        scope === 'day' && group.block ? el('span', { class: 'acc-time', text: blockTimeLabel(group.block) }) : null,
+      ),
+    ),
   );
 
   const section = el('section', { class: `acc${expanded ? ' is-open' : ''}` }, head);

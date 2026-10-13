@@ -44,6 +44,10 @@
   --blur: blur(20px);
   --cat-tint-alpha: 0.16;
   --cat-tag-text: #58585c;
+  /* 日期块选中态:深灰半透明 + 白字 */
+  --chip-active-bg: rgba(28, 28, 30, 0.8);
+  --chip-active-text: #ffffff;
+  --chip-active-sub: rgba(255, 255, 255, 0.62);
   --cat-fallback: 142, 142, 147;
 
   --tab-h: 58px;
@@ -82,6 +86,9 @@
     --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.6);
     --cat-tint-alpha: 0.2;
     --cat-tag-text: #c7c7cc;
+    --chip-active-bg: rgba(120, 120, 128, 0.34);
+    --chip-active-text: #ffffff;
+    --chip-active-sub: rgba(255, 255, 255, 0.62);
   }
 }
 
@@ -423,16 +430,17 @@ body.no-scroll {
 }
 
 .daychip {
-  flex: 1 0 46px;
-  min-width: 46px;
+  flex: 1 0 52px;
+  min-width: 52px;
   border: 0;
   background: var(--surface);
   border-radius: var(--radius);
-  padding: 8px 4px 7px;
+  /* 三行(星期 / 日期 / 进度)上下都要留白,别挤在一起 */
+  padding: 10px 6px 11px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   color: var(--label);
   font: inherit;
   cursor: pointer;
@@ -442,17 +450,21 @@ body.no-scroll {
 
 .daychip-wd {
   font-size: 11px;
+  line-height: 1.2;
   color: var(--label-3);
 }
 
 .daychip-date {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
+  line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
 
+/* 进度:字号更小、颜色更浅,和上面的主日期拉开层级 */
 .daychip-dot {
   font-size: 10px;
+  line-height: 1.2;
   color: var(--label-3);
   font-variant-numeric: tabular-nums;
 }
@@ -466,33 +478,27 @@ body.no-scroll {
   opacity: 0.5;
 }
 
+/* 选中态:深灰半透明(暗色下换成同视觉语言的半透明浅灰)。
+   注意这里不再画那条「今天」短线。 */
 .daychip.is-active {
-  background: var(--ink);
-  color: var(--on-ink);
+  background: var(--chip-active-bg);
+  color: var(--chip-active-text);
 }
 
-.daychip.is-active .daychip-wd,
+.daychip.is-active .daychip-wd {
+  color: var(--chip-active-sub);
+}
+
+.daychip.is-active .daychip-date {
+  color: var(--chip-active-text);
+}
+
 .daychip.is-active .daychip-dot {
-  color: var(--on-ink);
-  opacity: 0.72;
+  color: var(--chip-active-sub);
 }
 
 .daychip.is-active .daychip-dot.is-done {
-  opacity: 1;
-}
-
-.daychip.is-today .daychip-date::after {
-  content: '';
-  display: block;
-  height: 3px;
-  width: 14px;
-  margin: 2px auto 0;
-  border-radius: 2px;
-  background: var(--accent);
-}
-
-.daychip.is-active.is-today .daychip-date::after {
-  background: var(--on-ink);
+  color: var(--chip-active-text);
 }
 
 /* ---------------- 周历网格 ---------------- */
@@ -946,8 +952,8 @@ select.input {
 .acc-head {
   width: 100%;
   display: flex;
-  align-items: center;
-  gap: 9px;
+  align-items: flex-start;
+  gap: 8px;
   padding: 14px;
   border: 0;
   background: none;
@@ -966,15 +972,22 @@ select.input {
   padding-bottom: 12px;
 }
 
+/* 箭头:放在 26×26 的居中盒子里,视觉更大,也顺带扩大热区 */
 .acc-chevron {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: -2px 0 0 -4px;
   color: var(--label-3);
   transition: transform 0.2s ease;
 }
 
 .acc-chevron svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   display: block;
 }
 
@@ -982,19 +995,39 @@ select.input {
   transform: rotate(180deg);
 }
 
+/* 两行结构:第一行名称 + 进度,第二行类别 + 时间 */
+.acc-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.acc-line1 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.acc-line2 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--label-3);
+}
+
+/* 板块名允许完整换行,绝不截断 */
 .acc-name {
+  flex: 1;
+  min-width: 0;
   font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.acc-cat {
-  font-size: 11.5px;
-  color: var(--label-3);
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .acc-time {
@@ -1005,12 +1038,11 @@ select.input {
 }
 
 .acc-count {
-  margin-left: auto;
+  flex: 0 0 auto;
   font-size: 12.5px;
   color: var(--label-3);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  flex: 0 0 auto;
 }
 
 .acc-count.is-done {
